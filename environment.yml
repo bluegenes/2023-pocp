@@ -9,4 +9,4 @@ dependencies:
   - pandas>=2.0,<3
   - seaborn>=0.12,<1
   - jupyterlab
-  - plotly_express>=0.41,<1
+  - sourmash>=4.8,<5
