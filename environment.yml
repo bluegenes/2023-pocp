@@ -1,4 +1,4 @@
-name: 2023-pcop
+name: 2023-pocp
 channels:
   - conda-forge
   - bioconda
