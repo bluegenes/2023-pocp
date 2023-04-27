@@ -1,0 +1,12 @@
+name: 2023-pcop
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.10
+  - snakemake=7.25.0
+  - pandas>=2.0,<3
+  - seaborn>=0.12,<1
+  - jupyterlab
+  - plotly_express>=0.41,<1
