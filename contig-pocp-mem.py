@@ -18,7 +18,7 @@ class FileInfo(NamedTuple):
     fidx: LinearIndex
     nskip: int
 
-def read_and_sketch_fromfile(fromfile, moltype='protein', ksize=10, scaled=20, verbose=False):
+def read_and_sketch_fromfile(fromfile, *, moltype='protein', ksize=10, scaled=20, verbose=False):
     """
     Read a CSV file with columns "name", "genome_filename", and "protein_filename".
     Return a dictionary of name: filename, selecting the appropriate filename column
@@ -45,8 +45,7 @@ def read_and_sketch_fromfile(fromfile, moltype='protein', ksize=10, scaled=20, v
            "Decrease scaled value to reduce this (but analysis will take longer).")
     return fileinfo
 
-
-def read_and_sketch_fasta(fasta_file, ksize, moltype, scaled=1, verbose=False):
+def read_and_sketch_fasta(fasta_file, *, moltype='protein', ksize=10, scaled=20, verbose=False):
     """
     Read and sketch a fasta file.
     Return:
