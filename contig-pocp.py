@@ -86,7 +86,7 @@ def find_contig_matches(querycontigsdb, searchdb, *, threshold=0.95, ani_thresho
             notify(f"on contig {n} of {len(querycontigsdb)}")
             notify(f"current percent match: {n_with_match / n}")
         if not csig.minhash.hashes:
-            raise ValueError(f"query contig {csig.name} has no hashes, this should not happen")
+            raise ValueError(f"query contig '{csig.name}' has no hashes, this should not happen")
         res = searchdb.best_containment(csig, threshold=threshold)
         if not res:
             continue
@@ -100,7 +100,7 @@ def find_contig_matches(querycontigsdb, searchdb, *, threshold=0.95, ani_thresho
         n_with_match +=1
         if verbose:
             # print(res)
-            notify(f"found match for {csig.name} ({res.score})")
+            notify(f"found match for '{csig.name}' ({res.score})")
             # optionally, we could store match info. If db is contig-level, we could also store names of matching contigs
             #match_info.append((qcontig.name, res[0].score))
     percent_with_match = (n_with_match / len(querycontigsdb)) * 100
@@ -110,21 +110,23 @@ def find_contig_matches(querycontigsdb, searchdb, *, threshold=0.95, ani_thresho
 def main(args):
     fileinfo = read_fromfile(args.fromfile, moltype=args.moltype)
     pairs = combinations(fileinfo.keys(), 2) # get all pairs of files
+    p_skipped=set()
+
     if args.output_csv:
-        notify(f"Writing output to {args.output_csv}")
+        notify(f"Writing output to '{args.output_csv}'")
         outF = open(args.output_csv, 'w')
         writer = csv.writer(outF)
         writer.writerow(['nameA', 'nameB',  'POCP', 'averagePOCP', 'n_match_fileA', 'n_match_fileB',
                           'ncompared_fileA', 'ncompared_fileB', 'nskipped_fileA', 'nskipped_fileB',
                           'fileA', 'fileB', 'threshold', 'ksize', 'moltype', 'scaled'])
+
     for n, pair in enumerate(pairs):
-        if n > 0 and n % 100 == 0:
-            notify(f"on comparison {n} of {len(pairs)}")
+        if n % 100 == 0:
+            notify(f"starting comparison {n+1} ...")
         name1 = pair[0]
         name2 = pair[1]
         f1 = fileinfo[name1]
         f2 = fileinfo[name2]
-        p_skipped=set()
         if args.verbose:
             notify(f"Comparing {name1} and {name2}")
         fidx1,cidx1,c1_skipped,p1_skipped = read_and_sketch_fasta(f1, ksize=args.ksize, moltype=args.moltype, scaled=args.scaled, verbose=args.verbose)
@@ -148,7 +150,7 @@ def main(args):
         avg_p_skipped = sum(p_skipped) / len(p_skipped)
     notify(f"On average, skipped {avg_p_skipped:.2f}% of contigs due to scaled value {args.scaled}.\n" \
            "Decrease scaled value to reduce this (but analysis will take longer).")
-    # find contig-contig matches (SLOW!!!)
+    # find contig-contig matches (very slow, better not to do this)
     # c1_in_c2 = find_contig_matches(cidx1, cidx2, args.threshold, verbose=True)
     # print(f"Contig-search: Percent of contigs in file 1 that are in file 2: {c1_in_c2}")
     # c2_in_c1 = find_contig_matches(cidx2, cidx1, args.threshold, verbose=True)
