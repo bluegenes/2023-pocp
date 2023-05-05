@@ -10,3 +10,4 @@ dependencies:
   - seaborn>=0.12,<1
   - jupyterlab
   - sourmash>=4.8,<5
+  - py-spy=0.3.14
