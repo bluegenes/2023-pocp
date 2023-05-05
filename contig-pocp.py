@@ -2,7 +2,7 @@ import sys
 import csv
 import screed
 import argparse
-from itertools import combinations
+from collections import deque
 import sourmash
 # import notify from sourmash
 from sourmash.logging import notify
@@ -109,7 +109,6 @@ def find_contig_matches(querycontigsdb, searchdb, *, threshold=0.95, ani_thresho
 
 def main(args):
     fileinfo = read_fromfile(args.fromfile, moltype=args.moltype)
-    pairs = combinations(fileinfo.keys(), 2) # get all pairs of files
     p_skipped=set()
 
     if args.output_csv:
@@ -120,34 +119,46 @@ def main(args):
                           'ncompared_fileA', 'ncompared_fileB', 'nskipped_fileA', 'nskipped_fileB',
                           'fileA', 'fileB', 'threshold', 'ksize', 'moltype', 'scaled'])
 
-    for n, pair in enumerate(pairs):
-        if n % 100 == 0:
-            notify(f"starting comparison {n+1} ...")
-        name1 = pair[0]
-        name2 = pair[1]
-        f1 = fileinfo[name1]
-        f2 = fileinfo[name2]
-        if args.verbose:
-            notify(f"Comparing {name1} and {name2}")
+    # pairs = combinations(fileinfo.keys(), 2) # get all pairs of files
+    comparison_names = fileinfo.items()
+    compare_queue = deque(comparison_names)
+    n_compared = 0
+    for name1, f1 in comparison_names:
+        # f1 = fileinfo[name1]
         fidx1,cidx1,c1_skipped,p1_skipped = read_and_sketch_fasta(f1, ksize=args.ksize, moltype=args.moltype, scaled=args.scaled, verbose=args.verbose)
-        fidx2,cidx2,c2_skipped,p2_skipped = read_and_sketch_fasta(f2, ksize=args.ksize, moltype=args.moltype, scaled=args.scaled, verbose=args.verbose)
         p_skipped.add(p1_skipped)
-        p_skipped.add(p2_skipped)
-        # find contig->fullfile matches
-        c1_in_f2, c1_matches = find_contig_matches(cidx1, fidx2, threshold=args.threshold, ani_threshold=0.95)
-        c2_in_f1, c2_matches = find_contig_matches(cidx2, fidx1, threshold=args.threshold, ani_threshold=0.95)
-        average_pocp = (c1_in_f2 + c2_in_f1) / 2
-        pocp = ((c1_matches + c2_matches) / (len(cidx1) + len(cidx2))*100)
-        if args.verbose:
-            notify(f"POCP (thresh {args.threshold}): {pocp:.2f} (p1:{c1_in_f2:.2f}, p2:{c2_in_f1:.2f})")
-        if args.output_csv:
-            # writer.writerow([name1, name2, f1, f2, pocp, average_pocp])
-            writer.writerow([name1, name2, pocp, average_pocp, c1_matches, c2_matches,
-                             len(cidx1), len(cidx2), c1_skipped, c2_skipped,
-                             f1, f2, args.threshold, args.ksize, args.moltype, args.scaled])
+        compare_queue.popleft() # remove name1 from the queue
+        # compare all to first file
+        for name2, f2 in compare_queue:
+            if name1 == name2:
+                # this shouldn't happen, but let's notify and fix if it does
+                notify('skipping self-comparison')
+                continue
+            if n_compared % 100 == 0:
+                notify(f"starting comparison {n_compared+1} ({name1} x {name2}) ...")
+            # sketch file2
+            # f2 = fileinfo[name2]
+            fidx2,cidx2,c2_skipped,p2_skipped = read_and_sketch_fasta(f2, ksize=args.ksize, moltype=args.moltype, scaled=args.scaled, verbose=args.verbose)
+            p_skipped.add(p2_skipped)
+
+            # find contig->fullfile matches, both directions
+            c1_in_f2, c1_matches = find_contig_matches(cidx1, fidx2, threshold=args.threshold, ani_threshold=0.95)
+            c2_in_f1, c2_matches = find_contig_matches(cidx2, fidx1, threshold=args.threshold, ani_threshold=0.95)
+            average_pocp = (c1_in_f2 + c2_in_f1) / 2
+            pocp = ((c1_matches + c2_matches) / (len(cidx1) + len(cidx2))*100)
+            n_compared += 1
+
+            if args.verbose:
+                notify(f"POCP (thresh {args.threshold}): {pocp:.2f} (p1: {c1_in_f2:.2f}, p2: {c2_in_f1:.2f})")
+            if args.output_csv:
+                # writer.writerow([name1, name2, f1, f2, pocp, average_pocp])
+                writer.writerow([name1, name2, pocp, average_pocp, c1_matches, c2_matches,
+                                len(cidx1), len(cidx2), c1_skipped, c2_skipped,
+                                f1, f2, args.threshold, args.ksize, args.moltype, args.scaled])
+
+    avg_p_skipped = sum(p_skipped) / len(p_skipped)
     if args.output_csv:
         outF.close()
-        avg_p_skipped = sum(p_skipped) / len(p_skipped)
     notify(f"On average, skipped {avg_p_skipped:.2f}% of contigs due to scaled value {args.scaled}.\n" \
            "Decrease scaled value to reduce this (but analysis will take longer).")
     # find contig-contig matches (very slow, better not to do this)
