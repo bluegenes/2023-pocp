@@ -106,15 +106,13 @@ def main(args):
                           'ncompared_fileA', 'ncompared_fileB', 'nskipped_fileA', 'nskipped_fileB',
                           'fileA', 'fileB', 'threshold', 'ksize', 'moltype', 'scaled'])
 
-    # pairs = combinations(fileinfo.keys(), 2) # get all pairs of files
     comparison_names = fileinfo.items()
     compare_queue = deque(comparison_names)
     n_compared = 0
     for name1, f1 in comparison_names:
-        # f1 = fileinfo[name1]
         fidx1,cidx1,c1_skipped,p1_skipped = read_and_sketch_fasta(f1, ksize=args.ksize, moltype=args.moltype, scaled=args.scaled, verbose=args.verbose)
         p_skipped.add(p1_skipped)
-        compare_queue.popleft() # remove name1 from the queue
+        compare_queue.popleft() # remove name1 from comparison deque
         # compare all to first file
         for name2, f2 in compare_queue:
             if name1 == name2:
@@ -123,6 +121,7 @@ def main(args):
                 continue
             if n_compared % 100 == 0:
                 notify(f"starting comparison {n_compared+1} ({name1} x {name2}) ...")
+            
             # sketch file2
             fidx2,cidx2,c2_skipped,p2_skipped = read_and_sketch_fasta(f2, ksize=args.ksize, moltype=args.moltype, scaled=args.scaled, verbose=args.verbose)
             p_skipped.add(p2_skipped)
