@@ -6,12 +6,14 @@ basename = 'brady'
 ksizes = [6,7,8,9,10,11]
 scaled = [5,10,20,40,100]
 moltype='protein'
+POCP_TABLE="brady_pocp_table.tab"
 
 rule all:
     input: 
         expand(os.path.join(out_dir, f"{basename}.{{moltype}}.sc{{scaled}}.zip"), moltype=moltype, scaled=scaled),
         expand(os.path.join(out_dir, f"{basename}.{{moltype}}.k{{k}}-sc{{scaled}}.compare.csv"), moltype=moltype, scaled=scaled, k=ksizes),
         expand(os.path.join(out_dir, "plots", f"{basename}.{{moltype}}.k{{k}}-sc{{scaled}}.compare.matrix.png"), moltype=moltype, scaled=scaled, k=ksizes),
+        expand(os.path.join(out_dir, "pocp-compare", f"{basename}.{{moltype}}.k{{k}}-sc{{scaled}}.pocp-compare.csv"), moltype=moltype, scaled=scaled, k=ksizes),
 
 def make_param_str(ksizes, scaled):
     ks = [ f'k={k}' for k in ksizes ]
@@ -101,4 +103,27 @@ rule plot_aai:
         """
         mkdir -p {params.plot_dir}
         sourmash plot {input.np} --output-dir {params.plot_dir} --labels 2> {log}
+        """
+
+rule plot_pocp_aai_comparison:
+    input: 
+        compare_csv=os.path.join(out_dir, "{basename}.{moltype}.k{k}-sc{scaled}.compare.csv"),
+        pocp_table=POCP_TABLE,
+    output:
+        comparison_csv=os.path.join(out_dir, "pocp-compare", "{basename}.{moltype}.k{k}-sc{scaled}.pocp-compare.csv"),
+        comparison_plot=os.path.join(out_dir, "pocp-compare", "{basename}.{moltype}.k{k}-sc{scaled}.pocp-compare.png"),
+    threads: 1
+    resources:
+        mem_mb=3000,
+        time=30,
+        partition="high2",
+    conda: "conf/env/sourmash.yml"
+    log:  os.path.join(logs_dir, "pocp-compare", "{basename}.{moltype}.k{k}-sc{scaled}.pocp-compare.log")
+    benchmark:  os.path.join(logs_dir, "pocp-compare", "{basename}.{moltype}.k{k}-sc{scaled}.pocp-compare.benchmark")
+    shell:
+        """
+        python compare-aai-pocp.py --sourmash-compare-csv {input.compare_csv} \
+                                   --pocp-table {input.pocp_table} \
+                                   --output-comparison-csv {output.comparison_csv} \
+                                   --output-plot {output.comparison_plot} 2> {log}
         """
