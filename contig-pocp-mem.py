@@ -113,7 +113,7 @@ def main(args):
     fileinfo = read_and_sketch_fromfile(args.fromfile, moltype=args.moltype, ksize=args.ksize, scaled=args.scaled, verbose=args.verbose)
 
     if args.output_csv:
-        notify(f"Writing output to '{args.output_csv}'")
+        notify(f"Output will be written to '{args.output_csv}'.")
         outF = open(args.output_csv, 'w')
         writer = csv.writer(outF)
         writer.writerow(['nameA', 'nameB',  'POCP', 'averagePOCP', 'n_match_fileA', 'n_match_fileB',
