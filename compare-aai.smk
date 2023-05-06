@@ -15,12 +15,12 @@ rule all:
         expand(os.path.join(out_dir, "plots", f"{basename}.{{moltype}}.k{{k}}-sc{{scaled}}.compare.matrix.png"), moltype=moltype, scaled=scaled, k=ksizes),
         expand(os.path.join(out_dir, "pocp-compare", f"{basename}.{{moltype}}.k{{k}}-sc{{scaled}}.pocp-compare.csv"), moltype=moltype, scaled=scaled, k=ksizes),
 
-def make_param_str(ksizes, scaled):
+def make_param_str(ksizes, scaled, moltype):
     ks = [ f'k={k}' for k in ksizes ]
     ks = ",".join(ks)
     if isinstance(scaled, list):
         scaled = min(scaled) #take minimum value of scaled list
-    return f"{ks},scaled={scaled},abund"
+    return f"{moltype},{ks},scaled={scaled},abund"
 
 
 rule sketch_fromfile:
@@ -28,7 +28,7 @@ rule sketch_fromfile:
         fromfile=os.path.join(out_dir, "{basename}.fromfile.csv"),
     output: os.path.join(out_dir, "{basename}.{moltype}.zip")
     params:
-        sketch_params=make_param_str(ksizes=ksizes, scaled=scaled),
+        sketch_params=lambda w: make_param_str(ksizes=ksizes, scaled=scaled, moltype=w.moltype),
     threads: 1
     resources:
         mem_mb=6000,
