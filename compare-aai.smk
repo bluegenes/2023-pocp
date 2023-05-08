@@ -117,7 +117,6 @@ rule plot_pocp_aai_comparison:
         mem_mb=3000,
         time=30,
         partition="high2",
-    conda: "conf/env/sourmash.yml"
     log:  os.path.join(logs_dir, "pocp-compare", "{basename}.{moltype}.k{k}-sc{scaled}.pocp-compare.log")
     benchmark:  os.path.join(logs_dir, "pocp-compare", "{basename}.{moltype}.k{k}-sc{scaled}.pocp-compare.benchmark")
     shell:
